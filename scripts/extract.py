@@ -165,12 +165,45 @@ def fetch(url: str) -> tuple[str, str] | None:
         return None
 
 
+def _html_to_text(html: str) -> str:
+    """Strip scripts/styles/markup and return visible text. Fallback when
+    trafilatura yields nothing usable."""
+    import re
+    # Drop script/style/noscript blocks entirely.
+    html = re.sub(r"<(script|style|noscript)[^>]*>.*?</\1>", " ", html,
+                  flags=re.IGNORECASE | re.DOTALL)
+    # Drop head section (metadata, not visible content).
+    html = re.sub(r"<head[^>]*>.*?</head>", " ", html,
+                  flags=re.IGNORECASE | re.DOTALL)
+    # Convert breaks/rows to newlines so dates on separate lines stay separate.
+    html = re.sub(r"<(br|/p|/div|/li|/tr|/h[1-6])[^>]*>", "\n", html,
+                  flags=re.IGNORECASE)
+    # Strip remaining tags.
+    text = re.sub(r"<[^>]+>", " ", html)
+    # Unescape common entities.
+    text = (text.replace("&nbsp;", " ").replace("&amp;", "&")
+                .replace("&lt;", "<").replace("&gt;", ">").replace("&#39;", "'")
+                .replace("&quot;", '"').replace("&ndash;", "-").replace("&mdash;", "-"))
+    # Collapse whitespace but preserve line structure.
+    lines = [re.sub(r"[ \t]+", " ", ln).strip() for ln in text.split("\n")]
+    text = "\n".join(ln for ln in lines if ln)
+    return text
+
+
+# A page with real CFP content should comfortably exceed this once cleaned.
+MIN_CONTENT_CHARS = 200
+
+
 def extract_text(html: str, url: str) -> str:
     text = trafilatura.extract(html, url=url, include_links=True, include_tables=True)
-    if not text:
-        # Fallback to raw HTML truncated; the LLM can still parse it.
-        text = html
-    return text[:MAX_PAGE_CHARS]
+    if not text or len(text.strip()) < MIN_CONTENT_CHARS:
+        # trafilatura failed or returned almost nothing — use our own cleaner
+        # rather than dumping raw HTML (which is mostly boilerplate up front).
+        fallback = _html_to_text(html)
+        # Prefer whichever has more real content.
+        if not text or len(fallback) > len(text):
+            text = fallback
+    return (text or "")[:MAX_PAGE_CHARS]
 
 
 def extract_links(html: str, base_url: str) -> list[dict[str, str]]:
@@ -243,8 +276,23 @@ Links:
 
 
 def extract_deadlines(conf: Conference, page_text: str, page_url: str) -> dict | None:
+    # Guard: if we have almost no content, don't ask the LLM — it will hallucinate.
+    if len(page_text.strip()) < MIN_CONTENT_CHARS:
+        print(f"  content too thin ({len(page_text.strip())} chars), skipping extraction")
+        return {
+            "is_cfp_page": False,
+            "conference_year": None,
+            "is_past": False,
+            "deadlines": [],
+            "notes": "Page content too thin to extract (likely JS-rendered or fetch blocked).",
+        }
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    prompt = f"""Today is {today}. Extract submission deadlines for {conf.name} from the page below.
+    prompt = f"""Today is {today}. Extract submission deadlines for {conf.name} STRICTLY from the page content below.
+
+CRITICAL: Only use information present in the PAGE CONTENT. Do NOT use prior
+knowledge about this conference. If the page does not contain dated deadlines,
+set is_cfp_page=false and return an empty deadlines list. Never invent or guess
+a date. Every `source_quote` MUST be copied verbatim from the PAGE CONTENT.
 
 Rules:
 - Only include submission-related deadlines (abstract registration, paper submission,
@@ -264,7 +312,32 @@ Page URL: {page_url}
 {page_text}
 --- END ---
 """
-    return llm_json(prompt, DEADLINE_EXTRACTION_SCHEMA)
+    result = llm_json(prompt, DEADLINE_EXTRACTION_SCHEMA)
+    if not result:
+        return None
+
+    # Verify each quote actually appears in the source. Drop hallucinations.
+    def normalize(s: str) -> str:
+        return " ".join(s.lower().split())
+
+    haystack = normalize(page_text)
+    verified = []
+    dropped = 0
+    for d in result.get("deadlines", []):
+        quote = normalize(d.get("source_quote", ""))
+        # Require a non-trivial quote that is actually present in the page.
+        if len(quote) >= 8 and quote in haystack:
+            verified.append(d)
+        else:
+            dropped += 1
+    if dropped:
+        print(f"  dropped {dropped} deadline(s) whose quote was not found in page text")
+        note = result.get("notes", "")
+        result["notes"] = (note + f" [{dropped} unverified deadline(s) dropped]").strip()
+    result["deadlines"] = verified
+    if not verified:
+        result["is_cfp_page"] = result.get("is_cfp_page", False) and False
+    return result
 
 
 # ---------- Per-conference pipeline ----------
@@ -380,4 +453,27 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    # Debug mode: `python scripts/extract.py --debug osdi`
+    # Fetches one conference, prints what text the LLM would actually see.
+    # Use this to confirm the page is being read before trusting extractions.
+    if len(sys.argv) >= 3 and sys.argv[1] == "--debug":
+        target = sys.argv[2]
+        conf = next((c for c in load_conferences() if c.id == target), None)
+        if not conf:
+            print(f"No conference with id '{target}'")
+            sys.exit(1)
+        fetched = fetch(conf.seed_url)
+        if not fetched:
+            print("FETCH FAILED")
+            sys.exit(1)
+        final_url, html = fetched
+        text = extract_text(html, final_url)
+        print(f"URL: {final_url}")
+        print(f"HTML bytes: {len(html)}")
+        print(f"Extracted text chars: {len(text)}")
+        print("=" * 60)
+        print(text[:3000])
+        print("=" * 60)
+        print(f"(showing first 3000 of {len(text)} chars)")
+        sys.exit(0)
     sys.exit(main())
