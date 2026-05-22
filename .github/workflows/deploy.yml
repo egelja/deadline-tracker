@@ -1,0 +1,73 @@
+name: Deploy site
+
+on:
+  # Fires after the Extract workflow finishes (GITHUB_TOKEN commits don't
+  # trigger `push`, so we chain via workflow_run instead).
+  workflow_run:
+    workflows: ["Extract deadlines"]
+    types: [completed]
+  # Also deploy when site source changes are pushed directly.
+  push:
+    branches: [master]
+    paths:
+      - "src/**"
+      - "public/**"
+      - "astro.config.mjs"
+      - "package.json"
+      - "data/**"
+      - "CHANGELOG.md"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    # For workflow_run, only deploy if the extract run succeeded.
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # For workflow_run, the default checkout may land on the pre-push SHA.
+      # Explicitly fast-forward to the latest master so we build the commit the
+      # extract job just pushed. This avoids forcing `ref:` at checkout time.
+      - name: Sync to latest master
+        run: |
+          git fetch origin master --depth=1
+          git checkout -B master origin/master
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - uses: pnpm/action-setup@v6
+        wtih:
+          cache: true
+
+      - run: pnpm install
+
+      - name: Build site
+        env:
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: pnpm build
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

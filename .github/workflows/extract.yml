@@ -1,35 +1,22 @@
-name: Refresh deadlines
+name: Extract deadlines
 
 on:
   schedule:
     # Daily at 08:00 UTC (~midnight Pacific, ~3am Eastern)
     - cron: "0 8 * * *"
   workflow_dispatch:  # allow manual runs from the Actions tab
-  push:
-    branches: [master]
-    paths:
-      - "conferences.yaml"
-      - "scripts/**"
-      - "src/**"
-      - "public/**"
-      - "astro.config.mjs"
-      - ".github/workflows/**"
 
 permissions:
   contents: write   # to commit refreshed data
   models: read      # to call GitHub Models
-  pages: write      # to deploy
-  id-token: write   # required by deploy-pages
 
 concurrency:
-  group: refresh
+  group: extract
   cancel-in-progress: false
 
 jobs:
   extract:
     runs-on: ubuntu-latest
-    outputs:
-      changed: ${{ steps.commit.outputs.changed }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -38,7 +25,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          # cache: pip
+          cache: pip
 
       - name: Install Python deps
         run: pip install httpx trafilatura pyyaml openai
@@ -57,13 +44,11 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Commit changes
-        id: commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/deadlines.json CHANGELOG.md
           if git diff --cached --quiet; then
-            echo "changed=false" >> $GITHUB_OUTPUT
             echo "Nothing changed."
           else
             msg='${{ steps.diff.outputs.msg }}'
@@ -72,37 +57,4 @@ jobs:
             fi
             git commit -m "$msg"
             git push
-            echo "changed=true" >> $GITHUB_OUTPUT
           fi
-
-  build-and-deploy:
-    needs: extract
-    runs-on: ubuntu-latest
-    # Always deploy on schedule/manual so site reflects latest data/timestamps.
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: master  # pull the commit we just pushed
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: npm
-
-      - run: npm ci || npm install
-
-      - name: Build site
-        env:
-          REPO_OWNER: ${{ github.repository_owner }}
-          REPO_NAME: ${{ github.event.repository.name }}
-        run: npm run build
-
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./dist
-      - id: deployment
-        uses: actions/deploy-pages@v4
