@@ -14,7 +14,6 @@ concurrency:
 
 env:
   CHUNK_TOTAL: 4          # number of parallel runners (match matrix length)
-  LLM_MODEL: qwen2.5:7b-instruct-q4_K_M
 
 jobs:
   extract:
@@ -28,33 +27,14 @@ jobs:
         with:
           fetch-depth: 1
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          # cache: pip
-      - run: pip install httpx trafilatura pyyaml openai
-
-      - name: Cache Ollama models
-        uses: actions/cache@v4
-        with:
-          path: ~/.ollama/models
-          key: ollama-${{ env.LLM_MODEL }}
-
-      - name: Start Ollama + pull model
-        run: |
-          curl -fsSL https://ollama.com/install.sh | sh
-          ollama serve &
-          for i in $(seq 1 30); do
-            curl -sf http://localhost:11434/api/tags >/dev/null && break
-            sleep 1
-          done
-          ollama pull "$LLM_MODEL"
+      - uses: astral-sh/setup-uv@v5
 
       - name: Extract chunk ${{ matrix.chunk }}
         env:
           CHUNK_INDEX: ${{ matrix.chunk }}
           CHUNK_OUT: data/partials/chunk-${{ matrix.chunk }}.json
-        run: python scripts/extract.py
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: uv run scripts/extract.py
 
       - uses: actions/upload-artifact@v4
         with:
@@ -69,10 +49,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - run: pip install pyyaml
+
+      - uses: astral-sh/setup-uv@v5
 
       - uses: actions/download-artifact@v4
         with:
@@ -81,12 +59,12 @@ jobs:
           merge-multiple: true
 
       - name: Merge partials
-        run: python scripts/merge.py
+        run: uv run scripts/merge.py
 
       - name: Diff and update changelog
         id: diff
         run: |
-          msg=$(python scripts/diff.py)
+          msg=$(uv run scripts/diff.py)
           echo "msg<<EOF" >> $GITHUB_OUTPUT
           echo "$msg" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT

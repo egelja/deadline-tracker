@@ -1,4 +1,13 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#     "httpx",
+#     "trafilatura",
+#     "pyyaml",
+#     "openai",
+# ]
+# ///
 """
 Nightly deadline extractor.
 
@@ -33,11 +42,11 @@ ROOT = Path(__file__).resolve().parent.parent
 DATA_FILE = ROOT / "data" / "deadlines.json"
 CONFIG_FILE = ROOT / "conferences.yaml"
 
-# Local LLM via Ollama's OpenAI-compatible endpoint.
-MODEL = os.environ.get("LLM_MODEL", "qwen2.5:7b-instruct-q4_K_M")
+# OpenRouter API.
+MODEL = os.environ.get("LLM_MODEL", "openai/gpt-oss-120b")
 client = OpenAI(
-    base_url=os.environ.get("OLLAMA_HOST", "http://localhost:11434") + "/v1",
-    api_key="ollama",  # required by client, ignored by Ollama
+    base_url="https://openrouter.ai/api/v1",
+    api_key=os.environ["OPENROUTER_API_KEY"],
 )
 
 # Local model context is generous; keep a sane cap to bound latency.
@@ -75,6 +84,11 @@ DEADLINE_EXTRACTION_SCHEMA = {
                             "type": "string",
                             "description": "e.g., 'Abstract registration', 'Paper submission', 'Round 2 abstract'",
                         },
+                        "type": {
+                            "type": "string",
+                            "enum": ["registration", "submission", "rebuttal_start", "rebuttal_end", "notification"],
+                            "description": "Category of this deadline.",
+                        },
                         "date_iso": {
                             "type": "string",
                             "description": "ISO 8601 datetime with timezone offset, e.g., 2026-07-15T23:59:00-07:00. Use AoE (UTC-12) if specified as 'Anywhere on Earth'.",
@@ -96,7 +110,7 @@ DEADLINE_EXTRACTION_SCHEMA = {
                             "description": "0.0-1.0 confidence in this extraction.",
                         },
                     },
-                    "required": ["name", "date_iso", "timezone_note", "round", "source_quote", "confidence"],
+                    "required": ["name", "type", "date_iso", "timezone_note", "round", "source_quote", "confidence"],
                 },
             },
             "notes": {
@@ -231,10 +245,8 @@ def extract_links(html: str, base_url: str) -> list[dict[str, str]]:
 
 
 def llm_json(prompt: str, schema: dict, retries: int = 3) -> dict | None:
-    """Call the local model with JSON-schema-constrained output. Retries."""
-    # Ollama's OpenAI endpoint expects the bare JSON Schema under json_schema.schema
-    # and does not use the `strict` flag.
-    json_schema = {"name": schema.get("name", "out"), "schema": schema["schema"]}
+    """Call the model with JSON-schema-constrained output. Retries on failure."""
+    json_schema = {"name": schema.get("name", "out"), "strict": True, "schema": schema["schema"]}
     for attempt in range(retries):
         try:
             resp = client.chat.completions.create(
@@ -303,7 +315,7 @@ def extract_deadlines(conf: Conference, page_text: str, page_url: str) -> dict |
             "notes": "Page content too thin to extract (likely JS-rendered or fetch blocked).",
         }
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    prompt = f"""Today is {today}. Extract submission deadlines for {conf.name} STRICTLY from the page content below.
+    prompt = f"""Today is {today}. Extract submission deadlines for {conf.name} STRICTLY from the page URL below.
 
 CRITICAL: Only use information present in the PAGE CONTENT. Do NOT use prior
 knowledge about this conference. If the page does not contain dated deadlines,
@@ -319,6 +331,9 @@ Rules:
 - Set is_past=true only if ALL deadlines on this page are already past.
 - Confidence: 1.0 = explicit date with timezone; 0.5 = ambiguous or "TBD-ish";
   flag anything you're not sure about with lower confidence and explain in notes.
+- If a deadline is a date range, make separate entries for the start and end.
+- Include a "type" field, with either "registration", "submission" (e.g., full paper
+  submission), "rebuttal_start", "rebuttal_end", or "notification".
 
 Hints from config: {conf.hints or "(none)"}
 
@@ -326,7 +341,7 @@ Page URL: {page_url}
 
 --- PAGE CONTENT ---
 {page_text}
---- END ---
+--- END PAGE CONTENT ---
 """
     result = llm_json(prompt, DEADLINE_EXTRACTION_SCHEMA)
     if not result:
