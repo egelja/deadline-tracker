@@ -250,28 +250,42 @@ def llm_json(prompt: str, schema: dict, retries: int = 3) -> dict | None:
 
 
 def resolve_cfp_url(conf: Conference, seed_html: str, seed_url: str) -> str | None:
-    """If the seed page isn't the CFP itself, find the right link."""
+    """Given a page's links, pick the one most likely to lead to the current
+    CFP. Handles both hub pages (pick the right year) and landing pages
+    (follow the 'Call for Papers' link)."""
     links = extract_links(seed_html, seed_url)
     if not links:
         return None
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    prompt = f"""Today is {today}. I'm tracking deadlines for the {conf.name} conference.
+    year = datetime.now(timezone.utc).year
+    prompt = f"""Today is {today}. I'm tracking submission deadlines for {conf.name}.
 
-The page at {seed_url} contains these links. Find the URL most likely to be the
-current/upcoming call for papers (CFP) page with submission deadlines.
+I'm on the page {seed_url} and need to find the link that leads to the page with
+the actual submission DEADLINES for the CURRENT or NEXT upcoming edition.
 
-Prefer pages for the NEXT upcoming edition. If multiple years are present
-(e.g., 2026 and 2027 sites), pick the one whose deadlines have not yet passed.
-If the seed page already looks like a CFP, return null.
+How to choose:
+- If you see an explicit "Call for Papers" / "CFP" / "Submissions" / "Important
+  Dates" link, prefer it — that's where deadlines live, not the landing page.
+- If links point to different years/editions (e.g. 2026 vs 2027), pick the
+  EDITION WHOSE DEADLINES ARE STILL UPCOMING as of {today}. A conference held in
+  year Y typically has its submission deadlines ~9-15 months earlier. So in
+  {year}, the edition actively accepting submissions is often the {year+1}
+  edition, NOT the {year} one (whose deadlines have likely passed). Prefer the
+  LATER edition when in doubt, unless its deadlines are clearly not yet announced.
+- Return the single best URL to navigate to next. If this page already clearly
+  shows multiple dated submission deadlines, return null.
 
 Hints from config: {conf.hints or "(none)"}
 
-Links:
+Links on this page:
 {json.dumps(links, indent=2)}
 """
     result = llm_json(prompt, LINK_RESOLUTION_SCHEMA)
     if result:
-        return result.get("current_cfp_url")
+        url = result.get("current_cfp_url")
+        if url:
+            print(f"  resolver: {url}  ({result.get('reasoning', '')[:80]})")
+        return url
     return None
 
 
@@ -372,33 +386,52 @@ def process(conf: Conference, previous: dict) -> dict:
         return result
     final_url, html = fetched
 
-    # 2. Try extraction directly. If the page isn't the CFP, resolve and retry.
+    # 2. Iteratively crawl toward the real CFP page. Each hop: extract; if it's
+    #    not a CFP with upcoming deadlines, ask the resolver for the next link.
+    #    This handles multi-hop sites (sosp.org -> /2026/ -> /2026/cfp.html) and
+    #    lets the resolver correct a wrong-year guess.
+    MAX_HOPS = 4
+    visited = {final_url}
     text = extract_text(html, final_url)
     extraction = extract_deadlines(conf, text, final_url)
 
-    if extraction and not extraction["is_cfp_page"]:
-        print("  not a CFP page, resolving...")
-        resolved = resolve_cfp_url(conf, html, final_url)
-        if resolved and resolved != final_url:
-            fetched2 = fetch(resolved)
-            if fetched2:
-                final_url, html = fetched2
-                text = extract_text(html, final_url)
-                extraction = extract_deadlines(conf, text, final_url)
+    for hop in range(MAX_HOPS):
+        good = (
+            extraction
+            and extraction.get("is_cfp_page")
+            and extraction.get("deadlines")
+            and not extraction.get("is_past")
+        )
+        if good:
+            break
 
-    # 3. If still past, try resolving from the seed (maybe a new year's site exists).
-    if extraction and extraction["is_past"] and candidate_url != conf.seed_url:
-        print("  all deadlines past, checking seed for newer site...")
-        seed_fetch = fetch(conf.seed_url)
-        if seed_fetch:
-            seed_url, seed_html = seed_fetch
-            resolved = resolve_cfp_url(conf, seed_html, seed_url)
-            if resolved and resolved != final_url:
-                fetched3 = fetch(resolved)
-                if fetched3:
-                    final_url, html = fetched3
-                    text = extract_text(html, final_url)
-                    extraction = extract_deadlines(conf, text, final_url)
+        # Decide where to look next.
+        reason = (
+            "not a CFP page" if (extraction and not extraction.get("is_cfp_page"))
+            else "no upcoming deadlines" if (extraction and extraction.get("is_past"))
+            else "no deadlines found"
+        )
+        print(f"  hop {hop}: {reason}, resolving next link...")
+        resolved = resolve_cfp_url(conf, html, final_url)
+
+        # If the current page yielded nothing and resolver gives nothing, try the
+        # seed once (a newer edition's site may be linked there).
+        if (not resolved or resolved in visited) and final_url != conf.seed_url:
+            seed_fetch = fetch(conf.seed_url)
+            if seed_fetch:
+                s_url, s_html = seed_fetch
+                resolved = resolve_cfp_url(conf, s_html, s_url)
+
+        if not resolved or resolved in visited:
+            break
+
+        nxt = fetch(resolved)
+        if not nxt:
+            break
+        final_url, html = nxt
+        visited.add(final_url)
+        text = extract_text(html, final_url)
+        extraction = extract_deadlines(conf, text, final_url)
 
     result["resolved_url"] = final_url
 
