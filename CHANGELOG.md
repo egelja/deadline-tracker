@@ -2,6 +2,14 @@
 
 ## 2026-05-22
 
+- **SOSP**: added `Deadline to register abstracts` → 2026-03-26T23:59:00-12:00
+- **SOSP**: removed `Abstract registration` (was 2026-05-22T23:59:00-12:00)
+- **SOSP**: removed `Paper submission` (was 2026-05-22T23:59:00-12:00)
+- **SOSP**: removed `Rebuttal` (was 2026-05-22T23:59:00-12:00)
+- **SOSP**: removed `Notification` (was 2026-05-22T23:59:00-12:00)
+
+## 2026-05-22
+
 - **ASPLOS**: added `Abstract submission (Spring Cycle)` → 2025-03-05T23:59:00-05:00
 - **ASPLOS**: added `Full paper submission (Spring Cycle)` → 2025-03-12T23:59:00-05:00
 - **ASPLOS**: added `Author response (Spring Cycle)` → 2025-06-09T23:59:00-05:00
