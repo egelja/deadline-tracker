@@ -52,7 +52,7 @@ jobs:
           node-version: "20"
 
       - uses: pnpm/action-setup@v6
-        wtih:
+        with:
           cache: true
 
       - run: pnpm install
