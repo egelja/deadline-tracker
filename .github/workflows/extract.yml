@@ -2,21 +2,27 @@ name: Extract deadlines
 
 on:
   schedule:
-    # Daily at 08:00 UTC (~midnight Pacific, ~3am Eastern)
     - cron: "0 8 * * *"
-  workflow_dispatch:  # allow manual runs from the Actions tab
+  workflow_dispatch:
 
 permissions:
-  contents: write   # to commit refreshed data
-  models: read      # to call GitHub Models
+  contents: write
 
 concurrency:
   group: extract
   cancel-in-progress: false
 
+env:
+  CHUNK_TOTAL: 4          # number of parallel runners (match matrix length)
+  LLM_MODEL: qwen2.5:7b-instruct-q4_K_M
+
 jobs:
   extract:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        chunk: [0, 1, 2, 3]   # length must equal CHUNK_TOTAL
     steps:
       - uses: actions/checkout@v4
         with:
@@ -26,14 +32,56 @@ jobs:
         with:
           python-version: "3.12"
           # cache: pip
+      - run: pip install httpx trafilatura pyyaml openai
 
-      - name: Install Python deps
-        run: pip install httpx trafilatura pyyaml openai
+      - name: Cache Ollama models
+        uses: actions/cache@v4
+        with:
+          path: ~/.ollama/models
+          key: ollama-${{ env.LLM_MODEL }}
 
-      - name: Extract deadlines
+      - name: Start Ollama + pull model
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          ollama serve &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:11434/api/tags >/dev/null && break
+            sleep 1
+          done
+          ollama pull "$LLM_MODEL"
+
+      - name: Extract chunk ${{ matrix.chunk }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CHUNK_INDEX: ${{ matrix.chunk }}
+          CHUNK_OUT: data/partials/chunk-${{ matrix.chunk }}.json
         run: python scripts/extract.py
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: partial-${{ matrix.chunk }}
+          path: data/partials/chunk-${{ matrix.chunk }}.json
+          retention-days: 1
+
+  merge:
+    needs: extract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pyyaml
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: data/partials
+          pattern: partial-*
+          merge-multiple: true
+
+      - name: Merge partials
+        run: python scripts/merge.py
 
       - name: Diff and update changelog
         id: diff

@@ -33,15 +33,14 @@ ROOT = Path(__file__).resolve().parent.parent
 DATA_FILE = ROOT / "data" / "deadlines.json"
 CONFIG_FILE = ROOT / "conferences.yaml"
 
-# GitHub Models. Token comes from GITHUB_TOKEN in Actions (with models:read).
-MODEL = os.environ.get("LLM_MODEL", "openai/gpt-4o-mini")
+# Local LLM via Ollama's OpenAI-compatible endpoint.
+MODEL = os.environ.get("LLM_MODEL", "qwen2.5:7b-instruct-q4_K_M")
 client = OpenAI(
-    base_url="https://models.github.ai/inference",
-    api_key=os.environ["GITHUB_TOKEN"],
+    base_url=os.environ.get("OLLAMA_HOST", "http://localhost:11434") + "/v1",
+    api_key="ollama",  # required by client, ignored by Ollama
 )
 
-# Keep page text well under the 8K input token limit on free GitHub Models tier.
-# ~4 chars/token, leave room for prompt + schema.
+# Local model context is generous; keep a sane cap to bound latency.
 MAX_PAGE_CHARS = 20_000
 
 
@@ -232,13 +231,16 @@ def extract_links(html: str, base_url: str) -> list[dict[str, str]]:
 
 
 def llm_json(prompt: str, schema: dict, retries: int = 3) -> dict | None:
-    """Call GitHub Models with structured output. Retries with backoff."""
+    """Call the local model with JSON-schema-constrained output. Retries."""
+    # Ollama's OpenAI endpoint expects the bare JSON Schema under json_schema.schema
+    # and does not use the `strict` flag.
+    json_schema = {"name": schema.get("name", "out"), "schema": schema["schema"]}
     for attempt in range(retries):
         try:
             resp = client.chat.completions.create(
                 model=MODEL,
                 messages=[{"role": "user", "content": prompt}],
-                response_format={"type": "json_schema", "json_schema": schema},
+                response_format={"type": "json_schema", "json_schema": json_schema},
                 temperature=0.0,
             )
             return json.loads(resp.choices[0].message.content)
@@ -461,6 +463,14 @@ def process(conf: Conference, previous: dict) -> dict:
 def main() -> int:
     confs = load_conferences()
     previous = load_previous()
+
+    # Chunking for matrix parallelism. CHUNK_INDEX / CHUNK_TOTAL are 0-based.
+    total = int(os.environ.get("CHUNK_TOTAL", "1"))
+    index = int(os.environ.get("CHUNK_INDEX", "0"))
+    if total > 1:
+        confs = [c for i, c in enumerate(confs) if i % total == index]
+        print(f"Chunk {index}/{total}: {len(confs)} conference(s)")
+
     output = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "model": MODEL,
@@ -479,9 +489,12 @@ def main() -> int:
                 "stale_runs": prev_entry.get("stale_runs", 0) + 1,
                 "notes": f"Unexpected error: {e}",
             }
-    DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
-    DATA_FILE.write_text(json.dumps(output, indent=2, sort_keys=True))
-    print(f"\nWrote {DATA_FILE}")
+
+    # When chunked, write a partial file for the merge step instead of the final.
+    out_path = Path(os.environ["CHUNK_OUT"]) if os.environ.get("CHUNK_OUT") else DATA_FILE
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps(output, indent=2, sort_keys=True))
+    print(f"\nWrote {out_path}")
     return 0
 
 
