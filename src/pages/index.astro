@@ -38,7 +38,10 @@ for (const conf of Object.values(deadlines.conferences) as Conf[]) {
 rows.sort((a, b) => a.ts - b.ts);
 
 const upcoming = rows.filter((r) => r.upcoming);
-const past = rows.filter((r) => !r.upcoming).reverse().slice(0, 20);
+const past = rows
+  .filter((r) => !r.upcoming)
+  .reverse()
+  .slice(0, 20);
 
 const generated = new Date(deadlines.generated_at).toLocaleString("en-US", {
   timeZone: "UTC",
@@ -68,78 +71,99 @@ function urgencyClass(ts: number) {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width" />
     <title>Conference Deadlines</title>
-    <link rel="stylesheet" href={`${import.meta.env.BASE_URL}/styles.css`} />
+    <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <header>
       <h1>Conference Deadlines</h1>
       <p class="muted">
         Last updated {generated} UTC ·
-        <a href={`${import.meta.env.BASE_URL}/CHANGELOG.html`}>changelog</a>
+        <a href="/CHANGELOG.html">changelog</a>
       </p>
     </header>
 
     <main>
       <section>
         <h2>Upcoming</h2>
-        {upcoming.length === 0 ? (
-          <p class="muted">No upcoming deadlines.</p>
-        ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>Conference</th>
-                <th>Deadline</th>
-                <th>When</th>
-                <th>Time left</th>
-                <th>TZ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {upcoming.map((r) => (
-                <tr class={urgencyClass(r.ts)}>
-                  <td>
-                    <a href={r.conf.resolved_url} title={r.conf.notes}>
-                      {r.conf.name}
-                    </a>
-                    {r.conf.stale_runs > 0 && <span class="warn" title={`${r.conf.stale_runs} failed runs`}> ⚠</span>}
-                    {r.confidence < 0.7 && <span class="warn" title={`Confidence ${r.confidence}`}> ?</span>}
-                  </td>
-                  <td>
-                    {r.name}
-                    {r.round && <span class="muted"> · {r.round}</span>}
-                  </td>
-                  <td>{new Date(r.ts).toUTCString().slice(0, 22)}</td>
-                  <td>{daysUntil(r.ts)}</td>
-                  <td class="muted">{r.timezone_note}</td>
+        {
+          upcoming.length === 0 ? (
+            <p class="muted">No upcoming deadlines.</p>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>Conference</th>
+                  <th>Deadline</th>
+                  <th>When</th>
+                  <th>Time left</th>
+                  <th>TZ</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+              </thead>
+              <tbody>
+                {upcoming.map((r) => (
+                  <tr class={urgencyClass(r.ts)}>
+                    <td>
+                      <a href={r.conf.resolved_url} title={r.conf.notes}>
+                        {r.conf.name}
+                      </a>
+                      {r.conf.stale_runs > 0 && (
+                        <span
+                          class="warn"
+                          title={`${r.conf.stale_runs} failed runs`}
+                        >
+                          {" "}
+                          ⚠
+                        </span>
+                      )}
+                      {r.confidence < 0.7 && (
+                        <span class="warn" title={`Confidence ${r.confidence}`}>
+                          {" "}
+                          ?
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      {r.name}
+                      {r.round && <span class="muted"> · {r.round}</span>}
+                    </td>
+                    <td>{new Date(r.ts).toUTCString().slice(0, 22)}</td>
+                    <td>{daysUntil(r.ts)}</td>
+                    <td class="muted">{r.timezone_note}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )
+        }
       </section>
 
-      {past.length > 0 && (
-        <section>
-          <h2>Recently past</h2>
-          <table>
-            <tbody>
-              {past.map((r) => (
-                <tr class="past">
-                  <td>{r.conf.name}</td>
-                  <td>{r.name}{r.round && <span class="muted"> · {r.round}</span>}</td>
-                  <td>{new Date(r.ts).toUTCString().slice(0, 16)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
-      )}
+      {
+        past.length > 0 && (
+          <section>
+            <h2>Recently past</h2>
+            <table>
+              <tbody>
+                {past.map((r) => (
+                  <tr class="past">
+                    <td>{r.conf.name}</td>
+                    <td>
+                      {r.name}
+                      {r.round && <span class="muted"> · {r.round}</span>}
+                    </td>
+                    <td>{new Date(r.ts).toUTCString().slice(0, 16)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        )
+      }
     </main>
 
     <footer>
       <p class="muted">
-        Auto-extracted nightly via LLM. Verify against the official CFP before submitting.
+        Auto-extracted nightly via LLM. Verify against the official CFP before
+        submitting.
       </p>
     </footer>
   </body>
