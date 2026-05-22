@@ -1,0 +1,32 @@
+# Each conference has:
+#   id: stable slug used as the key in deadlines.json
+#   name: display name
+#   seed_url: stable URL to start from. Can be a hub page (e.g., asplos-conference.org)
+#            or the current CFP page. The extractor will follow links if needed.
+#   hints: optional free-text passed to the LLM to disambiguate
+#          (e.g., "look for abstract registration deadline, not paper deadline")
+
+conferences:
+  - id: asplos
+    name: ASPLOS
+    seed_url: https://www.asplos-conference.org/
+    hints: "Multi-round submission. Capture all rounds (abstract + paper deadlines)."
+
+  - id: osdi
+    name: OSDI
+    seed_url: https://www.usenix.org/conference/osdi
+    hints: "USENIX hosts. Latest year's CFP may be at /osdiYY."
+
+  - id: sosp
+    name: SOSP
+    seed_url: https://sosp.org/
+    hints: "Biennial conference (odd years recently). Capture abstract and paper deadlines."
+
+  - id: nsdi
+    name: NSDI
+    seed_url: https://www.usenix.org/conference/nsdi
+    hints: "USENIX. Often has fall and spring submission rounds."
+
+  - id: isca
+    name: ISCA
+    seed_url: https://www.iscaconf.org/

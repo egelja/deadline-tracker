@@ -1,0 +1,60 @@
+---
+import fs from "node:fs";
+import path from "node:path";
+
+const changelogPath = path.resolve("./CHANGELOG.md");
+const raw = fs.existsSync(changelogPath)
+  ? fs.readFileSync(changelogPath, "utf-8")
+  : "# Changelog\n\nNo changes recorded yet.";
+
+// Minimal markdown rendering: just headers, lists, bold, and code spans.
+// Astro has no built-in MD-to-HTML for arbitrary files, so we hand-roll.
+function md(src: string): string {
+  const lines = src.split("\n");
+  const out: string[] = [];
+  let inList = false;
+  for (const line of lines) {
+    if (line.startsWith("# ")) {
+      if (inList) { out.push("</ul>"); inList = false; }
+      out.push(`<h1>${esc(line.slice(2))}</h1>`);
+    } else if (line.startsWith("## ")) {
+      if (inList) { out.push("</ul>"); inList = false; }
+      out.push(`<h2>${esc(line.slice(3))}</h2>`);
+    } else if (line.startsWith("- ")) {
+      if (!inList) { out.push("<ul>"); inList = true; }
+      out.push(`<li>${inline(line.slice(2))}</li>`);
+    } else if (line.trim() === "") {
+      if (inList) { out.push("</ul>"); inList = false; }
+    } else {
+      if (inList) { out.push("</ul>"); inList = false; }
+      out.push(`<p>${inline(line)}</p>`);
+    }
+  }
+  if (inList) out.push("</ul>");
+  return out.join("\n");
+}
+function esc(s: string) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function inline(s: string) {
+  return esc(s)
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+}
+const html = md(raw);
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Changelog · Conference Deadlines</title>
+    <link rel="stylesheet" href={`${import.meta.env.BASE_URL}/styles.css`} />
+  </head>
+  <body>
+    <header>
+      <p><a href={import.meta.env.BASE_URL}>← back to deadlines</a></p>
+    </header>
+    <main set:html={html}></main>
+  </body>
+</html>
