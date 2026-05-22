@@ -6,7 +6,7 @@ on:
     - cron: "0 8 * * *"
   workflow_dispatch:  # allow manual runs from the Actions tab
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - "conferences.yaml"
       - "scripts/**"
@@ -85,7 +85,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main  # pull the commit we just pushed
+          ref: master  # pull the commit we just pushed
 
       - uses: actions/setup-node@v4
         with:
