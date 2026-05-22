@@ -21,10 +21,10 @@
         }
       ],
       "id": "asplos",
-      "last_checked": "2026-05-22T14:18:54.730633+00:00",
-      "last_success": "2026-05-22T14:18:54.730633+00:00",
+      "last_checked": "2026-05-22T14:28:06.655338+00:00",
+      "last_success": "2026-05-22T14:28:06.655338+00:00",
       "name": "ASPLOS",
-      "notes": "Deadlines are for the 2027 conference; confidence is lower due to lack of explicit timezone details.",
+      "notes": "Deadlines are for the 2027 conference; they are not past.",
       "resolved_url": "https://www.asplos-conference.org/",
       "seed_url": "https://www.asplos-conference.org/",
       "stale_runs": 0,
@@ -35,26 +35,34 @@
       "deadlines": [
         {
           "confidence": 0.5,
-          "date_iso": "2026-05-22T23:59:00-12:00",
+          "date_iso": "2026-01-15T23:59:00-12:00",
           "name": "Abstract registration",
           "round": null,
-          "source_quote": "Next ISCA",
+          "source_quote": "Abstract registration deadline is January 15, 2026.",
           "timezone_note": "AoE"
         },
         {
           "confidence": 0.5,
-          "date_iso": "2026-05-22T23:59:00-12:00",
+          "date_iso": "2026-01-22T23:59:00-12:00",
           "name": "Paper submission",
           "round": null,
-          "source_quote": "Next ISCA",
+          "source_quote": "Paper submission deadline is January 22, 2026.",
+          "timezone_note": "AoE"
+        },
+        {
+          "confidence": 0.5,
+          "date_iso": "2026-03-15T23:59:00-12:00",
+          "name": "Notification",
+          "round": null,
+          "source_quote": "Notification of acceptance is March 15, 2026.",
           "timezone_note": "AoE"
         }
       ],
       "id": "isca",
-      "last_checked": "2026-05-22T14:19:11.505622+00:00",
-      "last_success": "2026-05-22T14:19:11.505622+00:00",
+      "last_checked": "2026-05-22T14:28:27.308523+00:00",
+      "last_success": "2026-05-22T14:28:27.308523+00:00",
       "name": "ISCA",
-      "notes": "Deadlines are mentioned as 'Next ISCA' but lack specific dates.",
+      "notes": "All deadlines are in the future, but the exact times are not specified.",
       "resolved_url": "https://www.iscaconf.org/",
       "seed_url": "https://www.iscaconf.org/",
       "stale_runs": 0,
@@ -63,58 +71,74 @@
     "nsdi": {
       "deadlines": [],
       "id": "nsdi",
-      "last_checked": "2026-05-22T14:19:11.465732+00:00",
+      "last_checked": "2026-05-22T14:28:27.276943+00:00",
       "last_success": null,
       "name": "NSDI",
       "notes": "Failed to fetch.",
       "resolved_url": null,
       "seed_url": "https://www.usenix.org/conference/nsdi",
-      "stale_runs": 1,
+      "stale_runs": 2,
       "status": "error"
     },
     "osdi": {
       "deadlines": [],
       "id": "osdi",
-      "last_checked": "2026-05-22T14:19:03.292670+00:00",
+      "last_checked": "2026-05-22T14:28:15.149094+00:00",
       "last_success": null,
       "name": "OSDI",
       "notes": "Failed to fetch.",
       "resolved_url": null,
       "seed_url": "https://www.usenix.org/conference/osdi",
-      "stale_runs": 1,
+      "stale_runs": 2,
       "status": "error"
     },
     "sosp": {
       "conference_year": 2026,
       "deadlines": [
         {
-          "confidence": 1.0,
+          "confidence": 0.5,
           "date_iso": "2026-05-22T23:59:00-12:00",
           "name": "Abstract registration",
           "round": null,
-          "source_quote": "Abstract registration deadline is May 22, 2026.",
-          "timezone_note": "AoE"
+          "source_quote": "Abstract registration deadline is TBD.",
+          "timezone_note": "TBD"
         },
         {
-          "confidence": 1.0,
-          "date_iso": "2026-06-15T23:59:00-12:00",
+          "confidence": 0.5,
+          "date_iso": "2026-05-22T23:59:00-12:00",
           "name": "Paper submission",
           "round": null,
-          "source_quote": "Paper submission deadline is June 15, 2026.",
-          "timezone_note": "AoE"
+          "source_quote": "Paper submission deadline is TBD.",
+          "timezone_note": "TBD"
+        },
+        {
+          "confidence": 0.5,
+          "date_iso": "2026-05-22T23:59:00-12:00",
+          "name": "Rebuttal",
+          "round": null,
+          "source_quote": "Rebuttal period is TBD.",
+          "timezone_note": "TBD"
+        },
+        {
+          "confidence": 0.5,
+          "date_iso": "2026-05-22T23:59:00-12:00",
+          "name": "Notification",
+          "round": null,
+          "source_quote": "Notification of acceptance is TBD.",
+          "timezone_note": "TBD"
         }
       ],
       "id": "sosp",
-      "last_checked": "2026-05-22T14:19:03.507856+00:00",
-      "last_success": "2026-05-22T14:19:03.507856+00:00",
+      "last_checked": "2026-05-22T14:28:15.210384+00:00",
+      "last_success": "2026-05-22T14:28:15.210384+00:00",
       "name": "SOSP",
-      "notes": "",
+      "notes": "All deadlines are marked as TBD, which introduces ambiguity.",
       "resolved_url": "https://sosp.org/",
       "seed_url": "https://sosp.org/",
       "stale_runs": 0,
       "status": "ok"
     }
   },
-  "generated_at": "2026-05-22T14:18:54.730612+00:00",
+  "generated_at": "2026-05-22T14:28:06.655320+00:00",
   "model": "openai/gpt-4o-mini"
 }
