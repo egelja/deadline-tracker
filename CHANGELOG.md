@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-05-23
+
+- **ASPLOS**: added `April full paper submission (April)` → 2026-04-15T23:59-12:00
+- **ASPLOS**: added `April author response start (April)` → 2026-07-06T23:59-12:00
+- **ASPLOS**: added `April author response end (April)` → 2026-07-09T23:59-12:00
+- **ASPLOS**: added `April notification (April)` → 2026-07-27T23:59-12:00
+- **ASPLOS**: added `September full paper submission (September)` → 2026-09-09T23:59-12:00
+- **ASPLOS**: added `September author response start (September)` → 2026-12-01T23:59-12:00
+- **ASPLOS**: added `September author response end (September)` → 2026-12-04T23:59-12:00
+- **ASPLOS**: added `September notification (September)` → 2026-12-21T23:59-12:00
+- **ASPLOS**: removed `Full paper submission (April Cycle) (April)` (was 2026-04-15T23:59:00-12:00)
+- **ASPLOS**: removed `Author response (April Cycle) start (April)` (was 2026-07-06T23:59:00-12:00)
+- **ASPLOS**: removed `Author response (April Cycle) end (April)` (was 2026-07-09T23:59:00-12:00)
+- **ASPLOS**: removed `Notification (April Cycle) (April)` (was 2026-07-27T23:59:00-12:00)
+- **ASPLOS**: removed `Full paper submission (September Cycle) (September)` (was 2026-09-09T23:59:00-12:00)
+- **ASPLOS**: removed `Author response (September Cycle) start (September)` (was 2026-12-01T23:59:00-12:00)
+- **ASPLOS**: removed `Author response (September Cycle) end (September)` (was 2026-12-04T23:59:00-12:00)
+- **ASPLOS**: removed `Notification (September Cycle) (September)` (was 2026-12-21T23:59:00-12:00)
+- **SOSP**: status changed to `no_deadlines` (No deadlines found.)
+
 ## 2026-05-22
 
 - **ASPLOS**: added `Full paper submission (April Cycle) (April)` → 2026-04-15T23:59:00-12:00
