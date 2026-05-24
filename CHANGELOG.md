@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-05-24
+
+- **ASPLOS**: status changed to `error` (Failed to fetch.)
+
 ## 2026-05-23
 
 - **ASPLOS**: added `April full paper submission (April)` → 2026-04-15T23:59-12:00
