@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-05-25
+
+- **ASPLOS**: `April full paper submission (April)` moved 2026-04-15T23:59-12:00 → 2026-04-15T23:59:00-12:00
+- **ASPLOS**: `April author response start (April)` moved 2026-07-06T23:59-12:00 → 2026-07-06T23:59:00-12:00
+- **ASPLOS**: `April author response end (April)` moved 2026-07-09T23:59-12:00 → 2026-07-09T23:59:00-12:00
+- **ASPLOS**: `April notification (April)` moved 2026-07-27T23:59-12:00 → 2026-07-27T23:59:00-12:00
+- **ASPLOS**: `September full paper submission (September)` moved 2026-09-09T23:59-12:00 → 2026-09-09T23:59:00-12:00
+- **ASPLOS**: `September author response start (September)` moved 2026-12-01T23:59-12:00 → 2026-12-01T23:59:00-12:00
+- **ASPLOS**: `September author response end (September)` moved 2026-12-04T23:59-12:00 → 2026-12-04T23:59:00-12:00
+- **ASPLOS**: `September notification (September)` moved 2026-12-21T23:59-12:00 → 2026-12-21T23:59:00-12:00
+
 ## 2026-05-24
 
 - **ASPLOS**: status changed to `error` (Failed to fetch.)
