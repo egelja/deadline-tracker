@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-05-27
+
+- **ASPLOS**: status changed to `error` (LLM extraction failed.)
+
 ## 2026-05-25
 
 - **ASPLOS**: `April full paper submission (April)` moved 2026-04-15T23:59-12:00 → 2026-04-15T23:59:00-12:00
