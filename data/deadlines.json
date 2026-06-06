@@ -76,13 +76,13 @@
         }
       ],
       "id": "asplos",
-      "last_checked": "2026-06-05T11:19:30.122378+00:00",
+      "last_checked": "2026-06-06T09:56:31.699800+00:00",
       "last_success": "2026-05-25T11:46:05.152113+00:00",
       "name": "ASPLOS",
-      "notes": "Failed to fetch.",
-      "resolved_url": null,
+      "notes": "LLM extraction failed.",
+      "resolved_url": "https://www.asplos-conference.org/",
       "seed_url": "https://www.asplos-conference.org/",
-      "stale_runs": 10,
+      "stale_runs": 11,
       "status": "error"
     },
     "isca": {
@@ -97,37 +97,37 @@
         }
       ],
       "id": "isca",
-      "last_checked": "2026-06-05T11:19:30.650496+00:00",
+      "last_checked": "2026-06-06T09:56:47.044207+00:00",
       "last_success": "2026-05-22T15:20:05.717243+00:00",
       "name": "ISCA",
-      "notes": "Failed to fetch.",
-      "resolved_url": null,
+      "notes": "LLM extraction failed.",
+      "resolved_url": "https://www.iscaconf.org/",
       "seed_url": "https://www.iscaconf.org/",
-      "stale_runs": 14,
+      "stale_runs": 15,
       "status": "error"
     },
     "nsdi": {
       "deadlines": [],
       "id": "nsdi",
-      "last_checked": "2026-06-05T11:19:29.686927+00:00",
+      "last_checked": "2026-06-06T09:56:32.028088+00:00",
       "last_success": null,
       "name": "NSDI",
       "notes": "Failed to fetch.",
       "resolved_url": null,
       "seed_url": "https://www.usenix.org/conference/nsdi",
-      "stale_runs": 18,
+      "stale_runs": 19,
       "status": "error"
     },
     "osdi": {
       "deadlines": [],
       "id": "osdi",
-      "last_checked": "2026-06-05T11:19:29.469599+00:00",
+      "last_checked": "2026-06-06T09:56:35.934641+00:00",
       "last_success": null,
       "name": "OSDI",
       "notes": "Failed to fetch.",
       "resolved_url": null,
       "seed_url": "https://www.usenix.org/conference/osdi",
-      "stale_runs": 18,
+      "stale_runs": 19,
       "status": "error"
     },
     "sosp": {
@@ -161,16 +161,16 @@
         }
       ],
       "id": "sosp",
-      "last_checked": "2026-06-05T11:19:33.479037+00:00",
+      "last_checked": "2026-06-06T09:56:33.113003+00:00",
       "last_success": "2026-05-22T16:40:23.460888+00:00",
       "name": "SOSP",
       "notes": "LLM extraction failed.",
       "resolved_url": "https://sosp.org/index.html",
       "seed_url": "https://sosp.org/",
-      "stale_runs": 13,
+      "stale_runs": 14,
       "status": "error"
     }
   },
-  "generated_at": "2026-06-05T11:20:11.859222+00:00",
+  "generated_at": "2026-06-06T09:57:14.462512+00:00",
   "model": "openai/gpt-oss-120b"
 }
